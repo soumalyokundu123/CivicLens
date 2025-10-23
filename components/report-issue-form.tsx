@@ -88,24 +88,49 @@ export function ReportIssueForm() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Prepare the data to send to the API
+      const submitData = {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        location: formData.location,
+        coordinates: location ? { lat: location.lat, lng: location.lng } : null,
+        images: images.map(img => img.url) // For now, sending URLs. In production, you'd upload to a file service
+      }
 
-    // Generate a mock issue ID
-    const issueId = `CIV-${Math.random().toString(36).substr(2, 8).toUpperCase()}`
+      // Call the API
+      const response = await fetch('http://localhost:8080/issues/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData)
+      })
 
-    alert(`Issue reported successfully! Your tracking ID is: ${issueId}`)
+      const result = await response.json()
 
-    // Reset form
-    setFormData({
-      title: "",
-      description: "",
-      category: "",
-      location: "",
-    })
-    setImages([])
-    setLocation(null)
-    setIsSubmitting(false)
+      if (result.success) {
+        alert(`Issue reported successfully! Your tracking ID is: ${result.data.issueId}`)
+        
+        // Reset form
+        setFormData({
+          title: "",
+          description: "",
+          category: "",
+          location: "",
+        })
+        setImages([])
+        setLocation(null)
+      } else {
+        alert(`Error: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Error submitting issue:', error)
+      alert('Failed to submit issue. Please check if the backend server is running and try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
