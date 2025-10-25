@@ -839,6 +839,9 @@
   .animate-bounce {
     animation: var(--animate-bounce);
   }
+  .animate-in {
+    animation: enter var(--tw-animation-duration,var(--tw-duration,.15s))var(--tw-ease,ease)var(--tw-animation-delay,0s)var(--tw-animation-iteration-count,1)var(--tw-animation-direction,normal)var(--tw-animation-fill-mode,forwards);
+  }
   .animate-pulse {
     animation: var(--animate-pulse);
   }
@@ -1203,6 +1206,12 @@
       background-color: color-mix(in oklab, var(--muted) 30%, transparent);
     }
   }
+  .bg-muted\/40 {
+    background-color: var(--muted);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+    }
+  }
   .bg-muted\/50 {
     background-color: var(--muted);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1376,6 +1385,9 @@
   .pt-0 {
     padding-top: calc(var(--spacing) * 0);
   }
+  .pt-2 {
+    padding-top: calc(var(--spacing) * 2);
+  }
   .pt-4 {
     padding-top: calc(var(--spacing) * 4);
   }
@@ -1506,6 +1518,9 @@
   }
   .text-card-foreground {
     color: var(--card-foreground);
+  }
+  .text-destructive {
+    color: var(--destructive);
   }
   .text-foreground {
     color: var(--foreground);
@@ -1711,6 +1726,10 @@
     --tw-duration: 300ms;
     transition-duration: 300ms;
   }
+  .duration-500 {
+    --tw-duration: 500ms;
+    transition-duration: 500ms;
+  }
   .delay-100 {
     animation-delay: calc(100*1ms);
     animation-delay: .1s;
@@ -1722,6 +1741,10 @@
     animation-delay: .2s;
     --tw-animation-delay: calc(200*1ms);
     --tw-animation-delay: .2s;
+  }
+  .fade-in-0 {
+    --tw-enter-opacity: calc(0/100);
+    --tw-enter-opacity: 0;
   }
   .outline-none {
     --tw-outline-style: none;
@@ -1796,6 +1819,12 @@
   .file\:bg-transparent {
     &::file-selector-button {
       background-color: transparent;
+    }
+  }
+  .file\:text-base {
+    &::file-selector-button {
+      font-size: var(--text-base);
+      line-height: var(--tw-leading, var(--text-base--line-height));
     }
   }
   .file\:text-sm {
