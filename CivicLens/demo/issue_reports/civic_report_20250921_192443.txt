@@ -1,0 +1,14 @@
+
+CIVIC ISSUE REPORT
+==================
+Timestamp: 2025-09-21 19:24:41
+
+- CATEGORY: Road & Traffic
+- ISSUE TYPE (from Text): potholes on the road
+- SEVERITY: dangerous
+
+- ISSUE TYPE (from Image): Pothole
+- CONFIDENCE SCORE: 99.59%
+
+- DESCRIPTION:
+Large potholes have formed along the highway intersection, forcing vehicles to swerve suddenly and creating multiple near-miss accidents. The uneven surface is not only damaging cars and two-wheelers but also causing long traffic jams during peak hours.

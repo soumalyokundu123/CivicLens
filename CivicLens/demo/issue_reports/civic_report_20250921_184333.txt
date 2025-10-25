@@ -1,0 +1,14 @@
+
+CIVIC ISSUE REPORT
+==================
+Timestamp: 2025-09-21 18:43:32
+
+- CATEGORY: Water Supply & Drainage
+- ISSUE TYPE (from Text): waterlogging
+- SEVERITY: minor
+
+- ISSUE TYPE (from Image): Flood Waterlogging
+- CONFIDENCE SCORE: 88.98%
+
+- DESCRIPTION:
+Heavy waterlogging has accumulated across the main road near the market area, with knee-deep water completely disrupting transport services. Buses and auto-rickshaws are unable to operate, while pedestrians are forced to wade through dirty water that has led to traffic chaos, delays in emergency services, and rising health concerns for local residents.
