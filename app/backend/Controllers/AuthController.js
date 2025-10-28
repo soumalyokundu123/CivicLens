@@ -17,7 +17,7 @@ const signup = async (req, res) => {
     const newUser = new UserModel({ name, email, password: hashedPassword, category });
     const savedUser = await newUser.save();
 
-    // ✅ Include user data in the response
+    // Include user data in the response
     res.status(201).json({
         message: "User created successfully",
         success: true,
@@ -91,4 +91,18 @@ const login = async (req, res) => {
 }
 
 }
-module.exports = { signup ,login}
+
+// List users (optionally filter by category)
+const listUsers = async (req, res) => {
+  try {
+    const { category } = req.query;
+    const filter = {};
+    if (category) filter.category = category;
+    const users = await UserModel.find(filter).select('name email category');
+    res.status(200).json({ success: true, data: users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+}
+
+module.exports = { signup ,login, listUsers }

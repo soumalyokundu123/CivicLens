@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,73 +23,109 @@ interface Task {
   notes?: string
 }
 
-// Mock data for field worker tasks
-const mockTasks: Task[] = [
-  {
-    id: "CIV-A1B2C3D4",
-    title: "Large pothole on Main Street",
-    description:
-      "Deep pothole causing vehicle damage, approximately 2 feet wide and 6 inches deep. Located near the intersection with 5th Avenue.",
-    category: "Road Issues",
-    status: "assigned",
-    priority: "high",
-    location: "Main Street & 5th Avenue",
-    dateAssigned: "2024-01-15",
-    dueDate: "2024-01-18",
-    images: ["/pothole.png"],
-  },
-  {
-    id: "CIV-E5F6G7H8",
-    title: "Broken streetlight in park",
-    description:
-      "Streetlight has been out for over a week, creating safety concerns for evening joggers. Light fixture appears to be damaged.",
-    category: "Infrastructure",
-    status: "in-progress",
-    priority: "medium",
-    location: "Central Park, North Entrance",
-    dateAssigned: "2024-01-10",
-    dueDate: "2024-01-17",
-    images: ["/streetlight.jpg"],
-    notes: "Ordered replacement bulb and fixture. Will install tomorrow morning.",
-  },
-  {
-    id: "CIV-Q7R8S9T0",
-    title: "Damaged sidewalk",
-    description: "Cracked and uneven sidewalk creating tripping hazard for pedestrians. Multiple sections need repair.",
-    category: "Infrastructure",
-    status: "completed",
-    priority: "medium",
-    location: "Elm Street, Block 200",
-    dateAssigned: "2024-01-08",
-    dueDate: "2024-01-15",
-    notes: "Completed sidewalk repair. Used concrete patch for cracks and leveled uneven sections.",
-  },
-]
+const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.split(";").map(c => c.trim()).find(c => c.startsWith(name + "="))
+  return match ? decodeURIComponent(match.split("=")[1]) : null
+}
+
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const payload = token.split(".")[1]
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
 
 export default function FieldWorkerDashboard() {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [activeTab, setActiveTab] = useState("tasks")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [workerId, setWorkerId] = useState<string | null>(null)
 
-  const updateTaskStatus = (taskId: string, status: Task["status"], notes?: string) => {
-    setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, status, notes: notes || task.notes } : task)),
-    )
-    // Update selected task if it's the one being updated
-    if (selectedTask?.id === taskId) {
-      setSelectedTask((prev) => (prev ? { ...prev, status, notes: notes || prev.notes } : null))
+  const fetchTasks = async (uid: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await fetch(`${BACKEND_BASE}/issues/all?assignedTo=${uid}&limit=100`)
+      if (!res.ok) throw new Error(`Failed to load tasks (${res.status})`)
+      const json = await res.json()
+      const issues = (json?.data?.issues || []) as any[]
+      const mapped: Task[] = issues.map((i) => ({
+        id: i.issueId,
+        title: i.title,
+        description: i.description,
+        category: i.category,
+        status: i.status === "resolved" ? "completed" : i.status === "in-progress" ? "in-progress" : "assigned",
+        priority: i.priority === "urgent" ? "high" : (i.priority as any),
+        location: i.location || "",
+        dateAssigned: new Date(i.submittedAt).toISOString().slice(0, 10),
+        dueDate: "",
+        images: Array.isArray(i.images) ? i.images : [],
+        notes: "",
+      }))
+      setTasks(mapped)
+    } catch (e: any) {
+      setError(e?.message || "Failed to load tasks")
+    } finally {
+      setLoading(false)
     }
   }
 
-  const assignedTasks = tasks.filter((task) => task.status === "assigned")
-  const inProgressTasks = tasks.filter((task) => task.status === "in-progress")
-  const completedTasks = tasks.filter((task) => task.status === "completed")
+  useEffect(() => {
+    // Read JWT token and decode worker id
+    const token = readCookie("token")
+    if (!token) { setError("Not logged in"); return }
+    const payload = decodeJwtPayload(token)
+    const uid = payload?._id || payload?.id
+    const category = (payload?.category || "").toString().toLowerCase()
+    if (!uid) { setError("Invalid session"); return }
+    setWorkerId(uid)
+    // Optionally guard non-worker
+    if (category !== "worker") {
+      // still allow fetch so admins can preview with a query override if needed
+    }
+    fetchTasks(uid)
+  }, [])
+
+  const updateTaskStatus = async (taskId: string, status: Task["status"], notes?: string) => {
+    try {
+      // Map UI statuses to backend
+      const backendStatus = status === "completed" ? "resolved" : status === "assigned" ? "in-progress" : "in-progress"
+      const res = await fetch(`${BACKEND_BASE}/issues/${taskId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: backendStatus })
+      })
+      if (!res.ok) throw new Error("Failed to update status")
+      await fetchTasks(workerId!)
+      // Keep panel selection consistent
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(prev => prev ? { ...prev, status } as Task : null)
+      }
+    } catch (e) {
+      setError("Update failed")
+    }
+  }
+
+  const assignedTasks = useMemo(() => tasks.filter((t) => t.status === "assigned"), [tasks])
+  const inProgressTasks = useMemo(() => tasks.filter((t) => t.status === "in-progress"), [tasks])
+  const completedTasks = useMemo(() => tasks.filter((t) => t.status === "completed"), [tasks])
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-1 bg-muted/30">
+        {error && (
+          <div className="px-4 py-2 text-sm text-red-500">{error}</div>
+        )}
         {/* Hero Section */}
         <section className="bg-gradient-to-b from-background to-muted py-12 px-4 sm:px-6 lg:px-8">
           <div className="container mx-auto max-w-6xl">

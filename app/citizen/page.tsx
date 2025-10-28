@@ -26,6 +26,9 @@ export default function CitizenPage() {
   // --- State Variables ---
   const [text, setText] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
+  const [locationText, setLocationText] = useState<string>("");
+  const [lat, setLat] = useState<string>("");
+  const [lng, setLng] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusType, setStatusType] = useState<"success" | "error" | "">("");
@@ -56,9 +59,26 @@ export default function CitizenPage() {
     setStatusType("");
     setIsLoading(true);
 
+    let useLat = lat;
+    let useLng = lng;
+    if ((!useLat || !useLng) && typeof navigator !== "undefined" && navigator.geolocation) {
+      try {
+        const pos: GeolocationPosition = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 })
+        );
+        useLat = String(pos.coords.latitude);
+        useLng = String(pos.coords.longitude);
+        setLat(useLat);
+        setLng(useLng);
+      } catch {}
+    }
+
     const formData = new FormData();
     formData.append("text", text);
     formData.append("file", file);
+    if (locationText) formData.append("location", locationText);
+    if (useLat) formData.append("lat", useLat);
+    if (useLng) formData.append("lng", useLng);
 
     try {
       // --- API CALL (CHANGED) ---
@@ -135,7 +155,71 @@ export default function CitizenPage() {
                     className="text-base"
                   />
                 </div>
-                
+
+                {/* --- Location Input --- */}
+                <div className="space-y-2">
+                  <Label htmlFor="location_input" className="text-lg font-semibold">
+                    Location (optional)
+                  </Label>
+                  <Input
+                    id="location_input"
+                    value={locationText}
+                    onChange={(e) => setLocationText(e.target.value)}
+                    placeholder="e.g., MG Road, Bengaluru"
+                    disabled={isLoading}
+                    className="text-base"
+                  />
+                </div>
+
+                {/* --- Coordinates --- */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="lat_input" className="text-lg font-semibold">Latitude</Label>
+                    <Input
+                      id="lat_input"
+                      type="number"
+                      value={lat}
+                      onChange={(e) => setLat(e.target.value)}
+                      placeholder="12.9716"
+                      step="any"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lng_input" className="text-lg font-semibold">Longitude</Label>
+                    <Input
+                      id="lng_input"
+                      type="number"
+                      value={lng}
+                      onChange={(e) => setLng(e.target.value)}
+                      placeholder="77.5946"
+                      step="any"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        if (!navigator.geolocation) return;
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setLat(String(pos.coords.latitude));
+                            setLng(String(pos.coords.longitude));
+                          },
+                          () => {},
+                          { enableHighAccuracy: true, timeout: 8000 }
+                        );
+                      }}
+                      disabled={isLoading}
+                    >
+                      Use My Location
+                    </Button>
+                  </div>
+                </div>
+
                 {/* --- File Input --- */}
                 <div className="space-y-2">
                   <Label htmlFor="file_input" className="text-lg font-semibold">
@@ -151,7 +235,7 @@ export default function CitizenPage() {
                     className="file:text-base file:font-medium text-muted-foreground"
                   />
                 </div>
-                
+
                 {/* --- Submit Button --- */}
                 <Button type="submit" size="lg" className="w-full text-lg" disabled={isLoading}>
                   {isLoading ? (

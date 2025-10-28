@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   BarChart,
@@ -17,69 +18,88 @@ import {
   PieLabelRenderProps,
 } from "recharts"
 
-// Mock data for charts
-const issueTypeData = [
-  { name: "Road Issues", value: 45, color: "#8b5cf6" },
-  { name: "Infrastructure", value: 32, color: "#3b82f6" },
-  { name: "Public Spaces", value: 28, color: "#10b981" },
-  { name: "Public Safety", value: 15, color: "#f59e0b" },
-  { name: "Utilities", value: 12, color: "#ef4444" },
-  { name: "Other", value: 8, color: "#6b7280" },
-]
-
-const monthlyTrendData = [
-  { month: "Jul", reported: 45, resolved: 38 },
-  { month: "Aug", reported: 52, resolved: 45 },
-  { month: "Sep", reported: 48, resolved: 42 },
-  { month: "Oct", reported: 61, resolved: 55 },
-  { month: "Nov", reported: 58, resolved: 52 },
-  { month: "Dec", reported: 67, resolved: 59 },
-  { month: "Jan", reported: 72, resolved: 65 },
-]
-
-const resolutionTimeData = [
-  { category: "Road Issues", avgDays: 4.2 },
-  { category: "Infrastructure", avgDays: 6.8 },
-  { category: "Public Spaces", avgDays: 2.1 },
-  { category: "Public Safety", avgDays: 1.5 },
-  { category: "Utilities", avgDays: 5.3 },
-  { category: "Other", avgDays: 3.7 },
-]
+const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"
 
 export function AnalyticsDashboard() {
+  const [issueTypeData, setIssueTypeData] = useState<Array<{ name: string; value: number; color: string }>>([])
+  const [monthlyTrendData, setMonthlyTrendData] = useState<Array<{ month: string; reported: number; resolved: number }>>([])
+  const [resolutionTimeData, setResolutionTimeData] = useState<Array<{ category: string; avgDays: number }>>([])
+  const [totals, setTotals] = useState<{ totalIssues: number; resolvedTotal: number; resolutionRate: number } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await fetch(`${BACKEND_BASE}/issues/analytics`)
+        if (!res.ok) throw new Error(`Failed to load analytics (${res.status})`)
+        const json = await res.json()
+        const data = json?.data
+        // Map categories to display names and colors
+        const colorMap: Record<string, string> = {
+          road: "#8b5cf6",
+          infrastructure: "#3b82f6",
+          "public-spaces": "#10b981",
+          "public-safety": "#f59e0b",
+          utilities: "#ef4444",
+          other: "#6b7280",
+        }
+        const labelMap: Record<string, string> = {
+          road: "Road Issues",
+          infrastructure: "Infrastructure",
+          "public-spaces": "Public Spaces",
+          "public-safety": "Public Safety",
+          utilities: "Utilities",
+          other: "Other",
+        }
+        setIssueTypeData((data?.categoryDistribution || []).map((c: any) => ({ name: labelMap[c.name] || c.name, value: c.value, color: colorMap[c.name] || "#6b7280" })))
+        setMonthlyTrendData(data?.monthlyTrend || [])
+        setResolutionTimeData((data?.resolutionByCategory || []).map((r: any) => ({ category: labelMap[r.category] || r.category, avgDays: r.avgDays })))
+        setTotals(data?.totals || null)
+      } catch (e: any) {
+        setError(e?.message || "Failed to load analytics")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-2xl font-bold text-foreground">140</p>
-            <p className="text-sm text-muted-foreground">Total Issues</p>
-            <p className="text-xs text-green-600 mt-1">+12% from last month</p>
+            <p className="text-2xl font-bold text-foreground">{loading ? '…' : (totals?.totalIssues ?? 0)}</p>
+            <p className="text-sm text-foreground">Total Issues</p>
+            <p className="text-xs text-green-600 mt-1">&nbsp;</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-2xl font-bold text-foreground">76%</p>
-            <p className="text-sm text-muted-foreground">Resolution Rate</p>
-            <p className="text-xs text-green-600 mt-1">+3% from last month</p>
+            <p className="text-2xl font-bold text-foreground">{loading ? '…' : `${totals?.resolutionRate ?? 0}%`}</p>
+            <p className="text-sm text-foreground">Resolution Rate</p>
+            <p className="text-xs text-green-600 mt-1">&nbsp;</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-2xl font-bold text-foreground">3.8</p>
-            <p className="text-sm text-muted-foreground">Avg. Days to Resolve</p>
-            <p className="text-xs text-red-600 mt-1">+0.2 from last month</p>
+            <p className="text-2xl font-bold text-foreground">{loading ? '…' : (typeof totals?.totalIssues === 'number' ? '' : '')}</p>
+            <p className="text-sm text-foreground">Avg. Days to Resolve</p>
+            <p className="text-xs text-red-600 mt-1">&nbsp;</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-2xl font-bold text-foreground">4.6</p>
-            <p className="text-sm text-muted-foreground">Citizen Satisfaction</p>
-            <p className="text-xs text-green-600 mt-1">+0.3 from last month</p>
+            <p className="text-2xl font-bold text-foreground">—</p>
+            <p className="text-sm text-foreground">Citizen Satisfaction</p>
+            <p className="text-xs text-green-600 mt-1">&nbsp;</p>
           </CardContent>
         </Card>
       </div>
@@ -93,6 +113,9 @@ export function AnalyticsDashboard() {
             <CardDescription>Breakdown of reported issues by category</CardDescription>
           </CardHeader>
           <CardContent>
+            {error ? (
+              <p className="text-red-500 text-sm">{error}</p>
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -116,6 +139,7 @@ export function AnalyticsDashboard() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -126,6 +150,9 @@ export function AnalyticsDashboard() {
             <CardDescription>Issues reported vs resolved over time</CardDescription>
           </CardHeader>
           <CardContent>
+            {error ? (
+              <p className="text-red-500 text-sm">{error}</p>
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyTrendData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -136,6 +163,7 @@ export function AnalyticsDashboard() {
                 <Line type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={2} name="Resolved" />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -149,6 +177,9 @@ export function AnalyticsDashboard() {
             <CardDescription>How long it takes to resolve different types of issues</CardDescription>
           </CardHeader>
           <CardContent>
+            {error ? (
+              <p className="text-red-500 text-sm">{error}</p>
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={resolutionTimeData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -158,6 +189,7 @@ export function AnalyticsDashboard() {
                 <Bar dataKey="avgDays" fill="#8b5cf6" />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

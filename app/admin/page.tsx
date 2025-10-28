@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,8 +9,31 @@ import { IssueManagementTable } from "@/components/issue-management-table"
 import { AnalyticsDashboard } from "@/components/analytics-dashboard"
 import { Shield, BarChart3, Users, AlertTriangle } from "lucide-react"
 
+const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("issues")
+  const [stats, setStats] = useState<{ pending: number; inProgress: number; resolvedToday: number; avgResolutionHours: number | null } | null>(null)
+  const [loadingStats, setLoadingStats] = useState(false)
+  const [statsError, setStatsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoadingStats(true)
+        setStatsError(null)
+        const res = await fetch(`${BACKEND_BASE}/issues/stats`)
+        if (!res.ok) throw new Error(`Failed to load stats (${res.status})`)
+        const json = await res.json()
+        setStats(json?.data || null)
+      } catch (e: any) {
+        setStatsError(e?.message || "Failed to load stats")
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+    fetchStats()
+  }, [])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,8 +63,8 @@ export default function AdminDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Pending Issues</p>
-                      <p className="text-2xl font-bold text-foreground">23</p>
+                      <p className="text-sm font-medium text-foreground">Pending Issues</p>
+                      <p className="text-2xl font-bold text-foreground">{loadingStats ? '…' : (stats?.pending ?? 0)}</p>
                     </div>
                     <AlertTriangle className="h-8 w-8 text-yellow-500" />
                   </div>
@@ -52,8 +75,8 @@ export default function AdminDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-                      <p className="text-2xl font-bold text-foreground">15</p>
+                      <p className="text-sm font-medium text-foreground">In Progress</p>
+                      <p className="text-2xl font-bold text-foreground">{loadingStats ? '…' : (stats?.inProgress ?? 0)}</p>
                     </div>
                     <Users className="h-8 w-8 text-blue-500" />
                   </div>
@@ -64,8 +87,8 @@ export default function AdminDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Resolved Today</p>
-                      <p className="text-2xl font-bold text-foreground">8</p>
+                      <p className="text-sm font-medium text-foreground">Resolved Today</p>
+                      <p className="text-2xl font-bold text-foreground">{loadingStats ? '…' : (stats?.resolvedToday ?? 0)}</p>
                     </div>
                     <BarChart3 className="h-8 w-8 text-green-500" />
                   </div>
@@ -76,14 +99,19 @@ export default function AdminDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Avg. Resolution</p>
-                      <p className="text-2xl font-bold text-foreground">3.2d</p>
+                      <p className="text-sm font-medium text-foreground">Avg. Resolution</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {loadingStats ? '…' : (stats?.avgResolutionHours != null ? `${(stats.avgResolutionHours / 24).toFixed(1)}d` : '—')}
+                      </p>
                     </div>
                     <Shield className="h-8 w-8 text-accent" />
                   </div>
                 </CardContent>
               </Card>
             </div>
+            {statsError && (
+              <p className="text-sm text-red-500">{statsError}</p>
+            )}
           </div>
         </section>
 
