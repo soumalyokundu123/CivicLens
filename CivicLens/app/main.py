@@ -8,8 +8,6 @@ import os
 import json
 import urllib.request
 import urllib.error
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
 import base64
 
 app = FastAPI(title="CivicLens API", description="Predict civic issues from text or image")
@@ -21,7 +19,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # Which origins can connect
+    allow_origins=origins,   # origins can connect
     allow_credentials=True,
     allow_methods=["*"],     # Allow all methods (POST, GET, etc.)
     allow_headers=["*"],     # Allow all headers
@@ -89,7 +87,7 @@ async def predict_and_analyze(
     """
     temp_path = None
     try:
-        # 1. Run Image Prediction
+        # Run Image Prediction
         raw_bytes = await file.read()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
             temp_file.write(raw_bytes)
@@ -97,13 +95,12 @@ async def predict_and_analyze(
 
         image_label, image_confidence = predict_image_issue(temp_path)
 
-        # 2. Run Text Prediction
+        # Run Text Prediction
         text_prediction = predict_text_issue(text)  # Returns [category, type, severity]
 
-        # 3. Get timestamp
+        # Get timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # 4. Create the JSON (dict) result
         analysis_result = {
             "timestamp": timestamp,
             "category": text_prediction[0],
@@ -114,28 +111,8 @@ async def predict_and_analyze(
             "description": text
         }
 
-        # 5. --- SAVE TO DATABASE ---
-        # This is where you call your database function.
-        # You would create a new Report object/model and add it to your session.
-        #
-        # Example (must build this logic):
-        # db_report = models.Report(
-        #     timestamp=datetime.now(),
-        #     category=analysis_result["category"],
-        #     image_label=analysis_result["issue_type_image"],
-        #     confidence=image_confidence,
-        #     text_label=analysis_result["issue_type_text"],
-        #     severity=analysis_result["severity"],
-        #     description=analysis_result["description"]
-        # )
-        # db.add(db_report)
-        # db.commit()
-        # db.refresh(db_report)
-        #
-        # For now, just print it:
         print("Saving to database (placeholder):", analysis_result)
 
-        # 6. Optionally push to backend (disabled by default)
         if auto_save:
             try:
                 # Prepare coordinates and images
@@ -155,7 +132,7 @@ async def predict_and_analyze(
             except Exception as _e:
                 pass
 
-        # 7. Return the JSON result to the frontend
+        # return the JSON result to the frontend
         return analysis_result
 
     except Exception as e:
@@ -182,7 +159,7 @@ async def predict_and_download_report(
     """
     temp_path = None
     try:
-        # 1. Run Image Prediction
+        # Run Image Prediction
         raw_bytes = await file.read()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
             temp_file.write(raw_bytes)
@@ -192,14 +169,14 @@ async def predict_and_download_report(
         image_label = image_prediction[0]
         image_confidence = image_prediction[1]
 
-        # 2. Run Text Prediction
+        # Run Text Prediction
         # NOTE: Assumes your text_prediction is a list like [category, type, severity]
         text_prediction = predict_text_issue(text)
 
-        # 3. Get timestamp
+        # Get timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # 4. Prepare report content
+        # Prepare report content
         # (I've removed image_confidence as our function doesn't return it)
         report_content = f"""
         CIVIC ISSUE REPORT
@@ -218,13 +195,13 @@ async def predict_and_download_report(
         {text}
         """
 
-        # 5. Set up filename and headers
+        # Set up filename and headers
         file_name = f"civic_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         headers = {
             'Content-Disposition': f'attachment; filename="{file_name}"'
         }
 
-        # 6. Optionally push to backend (disabled by default)
+        # Optionally push to backend (disabled by default)
         if auto_save:
             try:
                 coords = None
@@ -243,7 +220,7 @@ async def predict_and_download_report(
             except Exception as _e:
                 pass
 
-        # 7. Return the Response object
+        # return the Response object
         return Response(
             content=report_content,
             media_type="text/plain",
@@ -257,6 +234,6 @@ async def predict_and_download_report(
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # 7. Clean up the temp file
+        # Clean up the temp file
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
