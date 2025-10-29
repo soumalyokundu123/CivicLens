@@ -1,14 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationSystem } from "@/components/notification-system"
-import { Menu, X, MapPin } from "lucide-react"
+import { Menu, X, MapPin, User as UserIcon, LogOut } from "lucide-react"
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.split(";").map(c => c.trim()).find(c => c.startsWith(name + "="))
+  return match ? decodeURIComponent(match.split("=")[1]) : null
+}
+
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const payload = token.split(".")[1]
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [user, setUser] = useState<{ name?: string; category?: string } | null>(null)
+
+  useEffect(() => {
+    const token = readCookie("token")
+    if (!token) { setUser(null); return }
+    const payload = decodeJwtPayload(token)
+    if (payload) {
+      setUser({ name: payload?.name || payload?.username || "User", category: payload?.category })
+    } else {
+      setUser(null)
+    }
+  }, [])
+
+  const signOut = () => {
+    // Expire cookie
+    document.cookie = "token=; path=/; max-age=0";
+    setUser(null)
+    window.location.href = "/login"
+  }
+
+  const dashboardPath = user?.category === 'admin' ? '/admin' : user?.category === 'worker' ? '/worker' : user?.category === 'citizen' ? '/citizen' : null
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -40,12 +77,29 @@ export function Header() {
             <div className="flex items-center space-x-4">
               <NotificationSystem />
               <ThemeToggle />
-              <Button asChild>
-                {/* <Link href="/citizen">Report Issue</Link> */}
-              </Button>
-              <Button asChild>
-                <Link href="/login">Login</Link>
-              </Button>
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <Link href="/profile" className="flex items-center gap-2 rounded-md border px-3 py-1.5 hover:bg-muted transition-colors">
+                    <UserIcon className="h-4 w-4" />
+                    <span className="text-sm font-medium text-foreground">{user.name}</span>
+                    {user.category && (
+                      <span className="text-xs text-muted-foreground">({user.category})</span>
+                    )}
+                  </Link>
+                  {dashboardPath && (
+                    <Button asChild variant="secondary">
+                      <Link href={dashboardPath}>My Dashboard</Link>
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={signOut} className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4" /> Sign out
+                  </Button>
+                </div>
+              ) : (
+                <Button asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
+              )}
             </div>
           </nav>
 
@@ -104,10 +158,31 @@ export function Header() {
                 </Link> */}
                 
               {/* </Button> */}
-              <Button asChild className="w-full">
-                <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                  Login
-                </Link></Button>
+              {user ? (
+                <>
+                  <Link href="/profile" className="flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-muted transition-colors">
+                    <UserIcon className="h-4 w-4" />
+                    <div className="text-sm">
+                      <div className="font-medium text-foreground">{user.name}</div>
+                      {user.category && <div className="text-muted-foreground">{user.category}</div>}
+                    </div>
+                  </Link>
+                  {dashboardPath && (
+                    <Button asChild className="w-full" onClick={() => setIsMenuOpen(false)}>
+                      <Link href={dashboardPath}>My Dashboard</Link>
+                    </Button>
+                  )}
+                  <Button className="w-full" onClick={() => { setIsMenuOpen(false); signOut() }}>
+                    <LogOut className="h-4 w-4 mr-2" /> Sign out
+                  </Button>
+                </>
+              ) : (
+                <Button asChild className="w-full">
+                  <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                    Login
+                  </Link>
+                </Button>
+              )}
 
             </nav>
           </div>

@@ -395,6 +395,30 @@ async function ingestCivicLensReport(req, res) {
             return res.status(400).json({ success: false, message: 'Parsed report missing required fields' });
         }
 
+        // --- NEW: Server-side de-duplication guard ---
+        // Avoid creating duplicate issues when the same report is submitted twice quickly
+        try {
+            const windowMs = 2 * 60 * 1000; // 2 minutes window
+            const since = new Date(Date.now() - windowMs);
+            const dedupeFilter = {
+                title: payload.title,
+                description: payload.description,
+                category: payload.category,
+                submittedAt: { $gte: since }
+            };
+            if (location) dedupeFilter.location = location;
+            const existingRecent = await IssueModel.findOne(dedupeFilter).lean();
+            if (existingRecent) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'Duplicate suppressed: similar issue already exists recently.',
+                    data: { issueId: existingRecent.issueId, duplicate: true }
+                });
+            }
+        } catch (e) {
+            // Fail open: if dedupe check errors, continue to create to avoid blocking submissions
+        }
+
         // Generate unique issue ID (reuse logic)
         let issueId;
         let isUnique = false;

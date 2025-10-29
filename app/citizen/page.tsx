@@ -35,6 +35,8 @@ export default function CitizenPage() {
   
   // --- NEW: State to hold the JSON results ---
   const [results, setResults] = useState<ReportResult | null>(null);
+  // --- NEW: Submitting to DB state ---
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // --- Handlers ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +47,7 @@ export default function CitizenPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAnalyze = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!text || !file) {
       setStatus("Please fill out both fields.");
@@ -90,7 +92,7 @@ export default function CitizenPage() {
 
       if (response.ok) {
         // --- UPDATED SUCCESS LOGIC ---
-        setStatus("Analysis Complete!");
+        setStatus("Analysis complete. Review below and submit to save.");
         setStatusType("success");
         
         // Get the JSON data
@@ -99,13 +101,7 @@ export default function CitizenPage() {
         // Store it in our state
         setResults(data); 
 
-        // --- REMOVED ALL DOWNLOAD LOGIC ---
-
-        // Reset form
-        setText("");
-        setFile(null);
-        const fileInput = document.getElementById("file_input") as HTMLInputElement;
-        if (fileInput) fileInput.value = "";
+        // --- Keep form values so the user can submit to DB ---
 
       } else {
         // Handle server errors
@@ -123,6 +119,77 @@ export default function CitizenPage() {
     }
   };
 
+  // --- NEW: Helper to convert selected file to base64 for backend images array ---
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // --- NEW: Submit analyzed report to DB ---
+  const handleSubmitReport = async () => {
+    if (!results) return;
+    setIsSubmitting(true);
+    setStatus("Submitting report to database...");
+    setStatusType("");
+
+    try {
+      let imageBase64: string | null = null;
+      if (file) {
+        try { imageBase64 = await fileToBase64(file); } catch {}
+      }
+
+      const jsonReport = {
+        category: results.category,
+        issueTypeImage: results.issue_type_image,
+        issueTypeText: results.issue_type_text,
+        severity: results.severity,
+        description: results.description,
+        timestamp: results.timestamp,
+        confidence: results.confidence,
+      };
+
+      const payload = {
+        jsonReport,
+        location: locationText || "",
+        coordinates: (lat && lng) ? { lat, lng } : undefined,
+        images: imageBase64 ? [imageBase64] : []
+      } as any;
+
+      const resp = await fetch("http://localhost:8080/issues/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data?.success === false) {
+        throw new Error(data?.message || "Failed to submit report");
+      }
+
+      setStatus("Report saved successfully.");
+      setStatusType("success");
+
+      // Clear form after successful DB save
+      setResults(null);
+      setText("");
+      setLocationText("");
+      setLat("");
+      setLng("");
+      setFile(null);
+      const fileInput = document.getElementById("file_input") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+    } catch (err: any) {
+      setStatus(`Submit failed: ${err?.message || "Unknown error"}`);
+      setStatusType("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -137,7 +204,7 @@ export default function CitizenPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleAnalyze} className="space-y-6">
                 
                 {/* --- Text Input --- */}
                 <div className="space-y-2">
@@ -236,14 +303,14 @@ export default function CitizenPage() {
                   />
                 </div>
 
-                {/* --- Submit Button --- */}
+                {/* --- Analyze Button --- */}
                 <Button type="submit" size="lg" className="w-full text-lg" disabled={isLoading}>
                   {isLoading ? (
                     <Clock className="mr-2 h-5 w-5 animate-spin" />
                   ) : (
                     <Send className="mr-2 h-5 w-5" />
                   )}
-                  {isLoading ? "Analyzing..." : "Submit Report"}
+                  {isLoading ? "Analyzing..." : "Analyze"}
                 </Button>
               </form>
               
@@ -316,6 +383,18 @@ export default function CitizenPage() {
                   <p className="text-base p-3 bg-muted/50 rounded-md">
                     {results.description}
                   </p>
+                </div>
+
+                {/* Submit to DB */}
+                <div className="pt-2">
+                  <Button onClick={handleSubmitReport} disabled={isSubmitting} className="w-full text-lg">
+                    {isSubmitting ? (
+                      <Clock className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                    )}
+                    {isSubmitting ? "Submitting..." : "Submit Report"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

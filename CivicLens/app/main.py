@@ -81,6 +81,7 @@ async def predict_and_analyze(
         location: str = Form("") ,
         lat: float | None = Form(None),
         lng: float | None = Form(None),
+        auto_save: bool = Form(False),
         # , db: Session = Depends(database.get_db) # <-- Uncomment when your DB is set up
 ):
     """
@@ -134,24 +135,25 @@ async def predict_and_analyze(
         # For now, just print it:
         print("Saving to database (placeholder):", analysis_result)
 
-        # 6. Push to backend (best-effort, non-blocking failure)
-        try:
-            # Prepare coordinates and images
-            coords = None
-            if lat is not None and lng is not None:
-                coords = {"lat": lat, "lng": lng}
-            mime = file.content_type or "image/jpeg"
-            img_b64 = base64.b64encode(raw_bytes).decode("utf-8")
-            img_data_url = f"data:{mime};base64,{img_b64}"
-            send_to_backend({
-                "category": analysis_result["category"],
-                "issueTypeImage": analysis_result["issue_type_image"],
-                "issueTypeText": analysis_result["issue_type_text"],
-                "severity": analysis_result["severity"],
-                "description": analysis_result["description"],
-            }, location=location or "", coordinates=coords, images=[img_data_url])
-        except Exception as _e:
-            pass
+        # 6. Optionally push to backend (disabled by default)
+        if auto_save:
+            try:
+                # Prepare coordinates and images
+                coords = None
+                if lat is not None and lng is not None:
+                    coords = {"lat": lat, "lng": lng}
+                mime = file.content_type or "image/jpeg"
+                img_b64 = base64.b64encode(raw_bytes).decode("utf-8")
+                img_data_url = f"data:{mime};base64,{img_b64}"
+                send_to_backend({
+                    "category": analysis_result["category"],
+                    "issueTypeImage": analysis_result["issue_type_image"],
+                    "issueTypeText": analysis_result["issue_type_text"],
+                    "severity": analysis_result["severity"],
+                    "description": analysis_result["description"],
+                }, location=location or "", coordinates=coords, images=[img_data_url])
+            except Exception as _e:
+                pass
 
         # 7. Return the JSON result to the frontend
         return analysis_result
@@ -173,6 +175,7 @@ async def predict_and_download_report(
         location: str = Form("") ,
         lat: float | None = Form(None),
         lng: float | None = Form(None),
+        auto_save: bool = Form(False),
 ):
     """
     Generates a full report from text and image, and returns it as a .txt file.
@@ -221,23 +224,24 @@ async def predict_and_download_report(
             'Content-Disposition': f'attachment; filename="{file_name}"'
         }
 
-        # 6. Push to backend (best-effort)
-        try:
-            coords = None
-            if lat is not None and lng is not None:
-                coords = {"lat": lat, "lng": lng}
-            mime = file.content_type or "image/jpeg"
-            img_b64 = base64.b64encode(raw_bytes).decode("utf-8")
-            img_data_url = f"data:{mime};base64,{img_b64}"
-            send_to_backend({
-                "category": text_prediction[0],
-                "issueTypeImage": image_label,
-                "issueTypeText": text_prediction[1],
-                "severity": text_prediction[2],
-                "description": text,
-            }, location=location or "", coordinates=coords, images=[img_data_url])
-        except Exception as _e:
-            pass
+        # 6. Optionally push to backend (disabled by default)
+        if auto_save:
+            try:
+                coords = None
+                if lat is not None and lng is not None:
+                    coords = {"lat": lat, "lng": lng}
+                mime = file.content_type or "image/jpeg"
+                img_b64 = base64.b64encode(raw_bytes).decode("utf-8")
+                img_data_url = f"data:{mime};base64,{img_b64}"
+                send_to_backend({
+                    "category": text_prediction[0],
+                    "issueTypeImage": image_label,
+                    "issueTypeText": text_prediction[1],
+                    "severity": text_prediction[2],
+                    "description": text,
+                }, location=location or "", coordinates=coords, images=[img_data_url])
+            except Exception as _e:
+                pass
 
         # 7. Return the Response object
         return Response(

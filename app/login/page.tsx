@@ -95,61 +95,105 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 via-white to-purple-500 p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-black rounded-2xl shadow-xl p-8 transform transition-all duration-300 hover:shadow-2xl">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-purple-800 mb-2">Welcome Back</h1>
-            <p className="text-white">Login to your account</p>
-          </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-white via-indigo-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.12),_transparent_50%),radial-gradient(ellipse_at_bottom,_rgba(16,185,129,0.10),_transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(56,189,248,0.10),_transparent_50%),radial-gradient(ellipse_at_bottom,_rgba(168,85,247,0.10),_transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-pan" />
+      <div className="pointer-events-none absolute -top-24 -left-24 size-72 rounded-full bg-indigo-400/25 blur-3xl animate-float-slow dark:bg-cyan-400/20" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 size-80 rounded-full bg-emerald-400/20 blur-3xl animate-float dark:bg-violet-500/20" />
 
-          <form onSubmit={handleSubmit}>
-            <Input
-              icon={Mail}
-              type="email"
-              name="email"
-              placeholder="Email address"
-              value={formData.email}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              error={errors.email}
-            />
+      <div className="relative container mx-auto max-w-lg px-4 py-16 grid place-items-center">
+        {/* Gradient border wrapper */}
+        <div className="w-full rounded-2xl p-[1px] bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 shadow-2xl animate-in slide-in-from-top-10 duration-700 ease-out">
+          <div className="rounded-2xl border border-border/60 bg-card will-change-transform">
+            <div className="p-8 md:p-10">
+              <div className="text-center mb-8">
+                <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent shadow-sm animate-pop">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h1 className="font-serif text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Welcome back</h1>
+                <p className="mt-2 text-sm text-muted-foreground">Sign in to your account to continue</p>
+              </div>
 
-            <Input
-              icon={Lock}
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              error={errors.password}
-            />
-            
-            {serverError && (
-              <p className="mt-2 text-sm text-red-400">{serverError}</p>
-            )}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    icon={Mail}
+                    type="email"
+                    name="email"
+                    placeholder="Email address"
+                    value={formData.email}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    error={errors.email}
+                  />
+                </div>
 
-            <div className="mb-6">
-              <Button onClick={() => handleSubmit()} loading={loading} type="button">
-                Login
-              </Button>
+                <div className="space-y-2">
+                  <Input
+                    icon={Lock}
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    error={errors.password}
+                  />
+                </div>
+
+                {serverError && (
+                  <p className="text-sm text-red-500">{serverError}</p>
+                )}
+
+                <div className="pt-2">
+                  <Button onClick={() => handleSubmit()} loading={loading} type="button" className="w-full">
+                    Login
+                  </Button>
+                </div>
+              </form>
+
+              <div className="mt-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Don't have an account?{' '}
+                  <Link
+                    href="/signup"
+                    className="text-accent hover:underline font-medium"
+                  >
+                    Sign up
+                  </Link>
+                </p>
+              </div>
             </div>
-          </form>
-
-          <div className="text-center">
-            <p className="text-gray-600 text-sm">
-              Don't have an account?{' '}
-              <Link
-                href="/signup"
-                className="text-purple-500 hover:text-purple-600 font-medium transition-colors duration-200"
-              >
-                Sign up
-              </Link>
-            </p>
           </div>
         </div>
       </div>
+      <style jsx global>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0) }
+          50% { transform: translateY(-12px) }
+        }
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0) }
+          50% { transform: translateY(-18px) }
+        }
+        @keyframes pop {
+          0% { transform: scale(.9); opacity:.0 }
+          100% { transform: scale(1); opacity:1 }
+        }
+        .animate-float { animation: float 8s ease-in-out infinite }
+        .animate-float-slow { animation: float-slow 12s ease-in-out infinite }
+        .animate-pop { animation: pop .5s cubic-bezier(.16,1,.3,1) both }
+        @keyframes pan-bg {
+          0% { background-position: 0% 0% }
+          100% { background-position: 200% 200% }
+        }
+        .bg-pan {
+          background: linear-gradient(120deg, transparent 0%, rgba(99,102,241,.06) 25%, transparent 50%, rgba(16,185,129,.06) 75%, transparent 100%);
+          background-size: 200% 200%;
+          animation: pan-bg 20s linear infinite;
+          mix-blend-mode: overlay;
+        }
+      `}</style>
     </div>
   );
 };
