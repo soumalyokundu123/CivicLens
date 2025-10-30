@@ -70,3 +70,4 @@ node_modules
 /.next/cache/webpack/client-development
 .next/cache/webpack/client-development/4.pack.gz
 .next/cache/webpack/client-development/3.pack.gz
+*.gz
