@@ -29,6 +29,8 @@ class_names = sorted([
     if os.path.isdir(os.path.join(TRAIN_DIR, folder))
 ])
 
+# print(class_names)
+
 # testing -> for the class labels sequence
 # debug checks — run once to print details
 # print("IMAGE_MODEL_PATH:", IMAGE_MODEL_PATH)

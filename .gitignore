@@ -65,3 +65,8 @@ Thumbs.db
 .env
 node_modules
 /.next/cache/webpack/client-development
+*.gz
+*.gz
+/.next/cache/webpack/client-development
+.next/cache/webpack/client-development/4.pack.gz
+.next/cache/webpack/client-development/3.pack.gz

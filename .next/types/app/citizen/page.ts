@@ -1,4 +1,4 @@
-// File: D:\CORE_FOUR\app\citizen\page.tsx
+// File: D:\Projects\SIH-2025-Project\CIvicLens\app\citizen\page.tsx
 import * as entry from '../../../../app/citizen/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -1,4 +1,4 @@
-// File: D:\CORE_FOUR\app\layout.tsx
+// File: D:\Projects\SIH-2025-Project\CIvicLens\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
