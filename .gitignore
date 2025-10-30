@@ -60,3 +60,8 @@ coverage.xml
 # macOS / Windows
 .DS_Store
 Thumbs.db
+
+.next/
+.env
+node_modules
+/.next/cache/webpack/client-development

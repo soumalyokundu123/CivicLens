@@ -1,9 +1,6 @@
 {
+  "/api/auth/login/route": "app/api/auth/login/route.js",
   "/login/page": "app/login/page.js",
-  "/citizen/page": "app/citizen/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/worker/page": "app/worker/page.js",
-  "/contact/page": "app/contact/page.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js"
+  "/page": "app/page.js",
+  "/citizen/page": "app/citizen/page.js"
 }
